@@ -1,0 +1,42 @@
+<h1>How the Raise Scoreboard works</h1>
+<p class="sub">Every week, US companies and funds file a Form D with the SEC within 15 days of first selling securities in a private (exempt) offering. This site ranks those filings like a sports league: who raised the most, which sectors and states are winning, and who is new.</p>
+
+<section class="panel"><h2>What counts as a new raise</h2>
+<ul>
+<li>A <b>new</b> Form D notice (amendments update a company's box score but are not ranked again);</li>
+<li>with money already sold (the "total amount sold" on the form);</li>
+<li>whose first sale happened within about a year of the filing (older, continuing offerings are shown on box scores but not ranked);</li>
+<li>that is not part of an acquisition or merger exchange (the form's business-combination box).</li>
+</ul>
+<p>Raises are ranked by the amount sold as reported. Weeks run Monday to Sunday by filing date; a week is final once Friday's filings are in. Seasons are calendar years.</p>
+</section>
+
+<section class="panel"><h2>Leagues</h2>
+<p>Form D asks each filer to pick an industry group. Leagues group them: <b>Tech</b> (Other Technology, Computers, Telecommunications), <b>Bio &amp; Health</b> (Biotechnology, Pharmaceuticals, Other Health Care, Hospitals and Physicians, Health Insurance), <b>Energy</b>, <b>Real Estate</b>, <b>Finance</b>, <b>Main Street</b> (retail, restaurants, manufacturing, business services, travel, agriculture), the <b>Open League</b> (filers who chose "Other", which includes many technology startups) and the <b>Fund League</b> (pooled investment funds: venture capital, private equity, hedge and other funds). States are the company's principal place of business; non-US filers are grouped as International. A <b>rookie</b> is a company filing its first Form D ever.</p>
+</section>
+
+<section class="panel" id="data"><h2>Data and how it is checked</h2>
+<ul>
+<li><b>Source:</b> SEC EDGAR Form D filings (public domain).</li>
+<li><b>How it gets here:</b> the <a href="https://huggingface.co/datasets/weio-ops/sec-form-d">weio-ops/sec-form-d</a> dataset (CC BY 4.0), rebuilt weekly from the SEC's quarterly Form D data sets and each filing's XML. Its checksum is verified on every download. Current copy: as of {{weio_asof}}.</li>
+<li><b>Cross-check:</b> a second, independent copy, <a href="https://huggingface.co/datasets/XOOMAR/sec-form-d-offerings">XOOMAR/sec-form-d-offerings</a> (updated daily), is compared filing by filing. Since {{since}} the two agree on <b>{{agree}}</b> of <b>{{overlap}}</b> overlapping filings (amount sold, offering amount, state, industry and filer ID). A rebuild is refused if agreement falls below 99.5%. Filings seen in only one copy so far are marked <span class="tag prov">provisional</span>.</li>
+<li><b>Direct from EDGAR:</b> {{edgar}}. EDGAR's fair-access policy requires automated clients to identify themselves with a contact email, so direct pulls switch on only when the operator provides one.</li>
+<li><b>Coverage:</b> {{rows}} filings since January 2024, complete through {{complete}}. Rebuilt every day.</li>
+</ul>
+<p>Downloads: <a href="{{u}}data/latest-week.json">this week's raises (JSON)</a> · <a href="{{u}}data/source.json">source and cross-check report</a>. Each box score links to the original filing on sec.gov.</p>
+</section>
+
+<section class="panel"><h2>What Form D does not tell you</h2>
+<ul>
+<li>Not every raise files a Form D, and some file late; a missing company is not proof of anything.</li>
+<li>"Amount sold" can include debt, convertible notes, SAFEs, options and warrants, not just priced equity, and is cumulative for the offering.</li>
+<li>The filer chooses its industry group, so leagues are only as precise as those choices.</li>
+<li>A Form D is a notice, not an announcement or a valuation, and it is not an offer to sell securities.</li>
+</ul>
+<p class="fine">{{disclaimer}}</p>
+</section>
+
+<section class="panel"><h2>Privacy, corrections and embeds</h2>
+<p>No personal data is published: Form D lists executives and directors, and this site leaves them out. There are no cookies; page views are counted without cookies only if the operator enables it, and never when your browser sends Do Not Track or Global Privacy Control.</p>
+<p>Spotted something wrong? <a href="https://github.com/{{repo}}/issues/new?labels=correction&title=Correction">Open a public correction</a> with the filing link. The weekly leaderboard and each league can be embedded on any site: the code is at the bottom of those pages.</p>
+</section>

@@ -1,0 +1,98 @@
+# Daily: pull the latest Form D filings, guard them, rebuild the scoreboard and publish it to GitHub Pages.
+# Also runs on code pushes and by hand. Scheduled runs skip the deploy when neither the data nor the code changed.
+# Fails safe: a failed download, checksum, cross-check, guard, test or build stops before deploying, and the last good
+# deploy stays live. GitHub emails the repository owner about failed runs.
+name: Daily scoreboard
+
+on:
+  schedule:
+    - cron: "23 9 * * *"
+  push:
+    branches: [main]
+    paths: ["scoreboard/**", "site/**", "scripts/**", ".github/workflows/deploy.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  actions: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  SB_BASE_URL: ${{ vars.SB_BASE_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+  SB_REPO: ${{ github.repository }}
+  SB_GOATCOUNTER: ${{ vars.SB_GOATCOUNTER }}
+  SB_SPONSOR_URL: ${{ vars.SB_SPONSOR_URL }}
+  EDGAR_CONTACT_EMAIL: ${{ vars.EDGAR_CONTACT_EMAIL }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    outputs:
+      deploy: ${{ steps.guard.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Tests
+        run: python -m unittest discover -s tests -t .
+      - name: Fetch, verify and cross-check Form D data
+        run: python -m scoreboard.sources work
+      - name: Data guard (and skip when nothing changed)
+        id: guard
+        run: python scripts/guard_data.py "$SB_BASE_URL/data/source.json" work/source.json --event "${{ github.event_name }}"
+      - name: Build
+        if: steps.guard.outputs.deploy == 'true'
+        run: python -m scoreboard.site work
+      - name: Share images
+        if: steps.guard.outputs.deploy == 'true'
+        run: CHROME="$(command -v google-chrome || command -v chromium-browser || true)" python scripts/og.py dist
+      - name: Custom domain
+        if: steps.guard.outputs.deploy == 'true' && vars.SB_CUSTOM_DOMAIN != ''
+        run: echo "${{ vars.SB_CUSTOM_DOMAIN }}" > dist/CNAME
+      - uses: actions/upload-pages-artifact@v5
+        if: steps.guard.outputs.deploy == 'true'
+        with:
+          path: dist
+      - uses: actions/upload-artifact@v7
+        if: steps.guard.outputs.deploy == 'true'
+        with:
+          name: urls
+          path: |
+            dist/urls-priority.txt
+            dist/urls-all.txt
+          retention-days: 7
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
+
+  indexnow:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: urls
+          path: dist
+      - name: Tell IndexNow about new and changed pages
+        run: python3 scripts/indexnow.py dist "$SB_BASE_URL"
+
+  keepalive:
+    needs: build
+    if: always() && github.event_name == 'schedule'
+    uses: ./.github/workflows/keepalive.yml

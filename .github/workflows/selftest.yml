@@ -1,0 +1,33 @@
+# Weekly self-test: the live scoreboard answers, its data is fresh, the mirrors still agree, tests pass on main.
+name: Self-test
+
+on:
+  schedule:
+    - cron: "47 5 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+env:
+  SB_BASE_URL: ${{ vars.SB_BASE_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Tests on main
+        run: python -m unittest discover -s tests -t .
+      - name: Live scoreboard health
+        run: python scripts/health.py "$SB_BASE_URL"
+
+  keepalive:
+    needs: live
+    if: always()
+    uses: ./.github/workflows/keepalive.yml
